@@ -23,7 +23,7 @@ Export → “Export PNG”
 
 
 Run
-open index.html
+open storyboard.html
 
 Notes
 No redo (undo only)
