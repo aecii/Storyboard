@@ -1,0 +1,1460 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Storyboard</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+    :root {
+      --bg: #0e0e0e;
+      --surface: #161616;
+      --border: #2a2a2a;
+      --accent: #e8c840;
+      --accent2: #e84040;
+      --text: #d4d4d4;
+      --muted: #555;
+      --tile-bg: #1a1a1a;
+      --shadow: 0 4px 24px rgba(0,0,0,0.6);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'IBM Plex Mono', monospace;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      padding: 10px 20px;
+    }
+
+    header h1 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 2rem;
+      letter-spacing: 4px;
+      color: var(--accent);
+      white-space: nowrap;
+    }
+
+    .header-sep {
+      width: 1px;
+      height: 32px;
+      background: var(--border);
+      flex-shrink: 0;
+    }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.72rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      padding: 7px 14px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .btn:hover { border-color: var(--accent); color: var(--accent); }
+    .btn.primary { border-color: var(--accent); color: var(--accent); background: rgba(232,200,64,0.06); }
+    .btn.primary:hover { background: rgba(232,200,64,0.16); }
+    .btn.danger { border-color: var(--accent2); color: var(--accent2); }
+    .btn.danger:hover { background: rgba(232,64,64,0.1); }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    #upload-input { display: none; }
+
+    .tile-size-control {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.7rem;
+      color: var(--muted);
+    }
+    .tile-size-control input[type=range] {
+      width: 80px;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
+    .save-status {
+      font-size: 0.65rem;
+      color: var(--muted);
+      letter-spacing: 1px;
+      white-space: nowrap;
+      transition: color 0.4s;
+    }
+    .save-status.saved  { color: #6abf6a; }
+    .save-status.saving { color: var(--accent); }
+    .save-status.error  { color: var(--accent2); }
+
+    .counter {
+      margin-left: auto;
+      font-size: 0.68rem;
+      color: var(--muted);
+      letter-spacing: 1px;
+      white-space: nowrap;
+    }
+
+    #drop-zone {
+      position: fixed;
+      inset: 0;
+      top: 57px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      pointer-events: none;
+      transition: opacity 0.3s;
+    }
+    #drop-zone.hidden { opacity: 0; pointer-events: none; }
+
+    #drop-zone .dz-frame {
+      border: 2px dashed var(--border);
+      padding: 60px 80px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+      pointer-events: all;
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+    #drop-zone .dz-frame:hover,
+    #drop-zone.dragover .dz-frame { border-color: var(--accent); }
+    #drop-zone .dz-icon { font-size: 3rem; opacity: 0.3; }
+    #drop-zone .dz-label {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.4rem;
+      letter-spacing: 3px;
+      color: var(--muted);
+    }
+    #drop-zone .dz-sub {
+      font-size: 0.68rem;
+      color: var(--muted);
+      letter-spacing: 1px;
+    }
+
+    #board {
+      position: relative;
+      min-height: calc(100vh - 57px);
+      overflow: hidden;
+    }
+
+    #board.file-dragover::after {
+      content: 'DROP TO ADD';
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 4rem;
+      letter-spacing: 8px;
+      color: var(--accent);
+      background: rgba(14,14,14,0.82);
+      border: 2px dashed var(--accent);
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    .tile {
+      position: absolute;
+      background: var(--tile-bg);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      cursor: grab;
+      user-select: none;
+      transition: box-shadow 0.15s, border-color 0.15s;
+      display: flex;
+      flex-direction: column;
+    }
+    .tile:hover { border-color: #3a3a3a; }
+    .tile.dragging {
+      cursor: grabbing;
+      box-shadow: 0 12px 48px rgba(0,0,0,0.8), 0 0 0 1px var(--accent);
+      z-index: 1000 !important;
+      opacity: 0.92;
+    }
+
+    .tile-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 5px 8px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      flex-shrink: 0;
+    }
+
+    .tile-index {
+      font-size: 0.6rem;
+      color: var(--accent);
+      letter-spacing: 1px;
+      font-weight: 500;
+    }
+
+    .tile-actions { display: flex; gap: 4px; }
+
+    .tile-btn {
+      width: 18px; height: 18px;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 0.65rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: color 0.1s, border-color 0.1s;
+      padding: 0;
+      line-height: 1;
+    }
+    .tile-btn:hover { color: var(--accent2); border-color: var(--accent2); }
+
+    .tile img {
+      display: block;
+      width: 100%;
+      height: calc(100% - 30px);
+      object-fit: contain;
+      background: #111;
+      pointer-events: none;
+      flex: 1;
+      min-height: 0;
+    }
+
+    .tile-resize {
+      position: absolute;
+      bottom: 0; right: 0;
+      width: 14px; height: 14px;
+      cursor: se-resize;
+      background:
+        linear-gradient(135deg, transparent 50%, var(--border) 50%),
+        linear-gradient(135deg, transparent 65%, var(--accent) 65%);
+      opacity: 0.6;
+    }
+    .tile-resize:hover { opacity: 1; }
+
+    .tile-label {
+      font-size: 0.6rem;
+      color: var(--muted);
+      padding: 2px 8px 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      flex-shrink: 0;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+    }
+
+    #canvas {
+      position: relative;
+      width: 100%;
+      min-height: calc(100vh - 57px);
+    }
+
+    /* ── STICKY NOTE ── */
+    .sticky {
+      position: absolute;
+      width: 200px;
+      min-height: 120px;
+      background: #2a2710;
+      border: 1px solid #5a5020;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+      display: flex;
+      flex-direction: column;
+      user-select: none;
+      transition: box-shadow 0.15s;
+    }
+    .sticky:hover { box-shadow: 0 6px 28px rgba(0,0,0,0.7); }
+    .sticky.dragging {
+      box-shadow: 0 12px 48px rgba(0,0,0,0.8), 0 0 0 1px #e8c840;
+      opacity: 0.92;
+    }
+
+    .sticky-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 4px 8px;
+      background: #1e1c08;
+      border-bottom: 1px solid #5a5020;
+      cursor: grab;
+      flex-shrink: 0;
+    }
+    .sticky-header:active { cursor: grabbing; }
+
+    .sticky-tag {
+      font-size: 0.58rem;
+      color: #e8c840;
+      letter-spacing: 1px;
+      font-weight: 500;
+    }
+
+    .sticky-del {
+      width: 16px; height: 16px;
+      border: 1px solid transparent;
+      background: transparent;
+      color: #555;
+      cursor: pointer;
+      font-size: 0.6rem;
+      display: flex; align-items: center; justify-content: center;
+      padding: 0; line-height: 1;
+      transition: color 0.1s, border-color 0.1s;
+    }
+    .sticky-del:hover { color: var(--accent2); border-color: var(--accent2); }
+
+    .sticky-body {
+      flex: 1;
+      padding: 8px 10px;
+      font-size: 0.72rem;
+      color: #d4c87a;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-break: break-word;
+      cursor: text;
+      min-height: 80px;
+      outline: none;
+    }
+    .sticky-body:empty::before {
+      content: 'Double-click to edit…';
+      color: #4a4520;
+      pointer-events: none;
+    }
+    .sticky-body.editing {
+      background: rgba(0,0,0,0.2);
+      cursor: text;
+    }
+
+    .sticky-resize {
+      position: absolute;
+      bottom: 0; right: 0;
+      width: 14px; height: 14px;
+      cursor: se-resize;
+      background:
+        linear-gradient(135deg, transparent 50%, #5a5020 50%),
+        linear-gradient(135deg, transparent 65%, #e8c840 65%);
+      opacity: 0.5;
+    }
+    .sticky-resize:hover { opacity: 1; }
+
+    /* ── DRAW OVERLAY ── */
+    #draw-overlay {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+      z-index: 500;
+      overflow: visible;
+    }
+    #draw-overlay.active {
+      pointer-events: all;
+      cursor: crosshair;
+    }
+    #draw-overlay path {
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    #draw-overlay path.eraser-hover {
+      stroke-opacity: 0.4;
+      cursor: pointer;
+    }
+
+    #canvas.draw-mode .tile,
+    #canvas.draw-mode .sticky {
+      pointer-events: none;
+    }
+
+    .draw-controls {
+      display: none;
+      align-items: center;
+      gap: 8px;
+    }
+    .draw-controls.visible { display: flex; }
+
+    .draw-controls input[type=color] {
+      width: 28px; height: 28px;
+      border: 1px solid var(--border);
+      background: none;
+      cursor: pointer;
+      padding: 1px;
+      border-radius: 2px;
+    }
+    .draw-controls input[type=range] {
+      width: 70px;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+    .draw-controls label {
+      font-size: 0.65rem;
+      color: var(--muted);
+      letter-spacing: 1px;
+      white-space: nowrap;
+    }
+
+    .btn.draw-active {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: rgba(232,200,64,0.12);
+    }
+    .btn.eraser-active {
+      border-color: var(--accent2);
+      color: var(--accent2);
+      background: rgba(232,64,64,0.08);
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Storyboard</h1>
+  <div class="header-sep"></div>
+  <div class="toolbar">
+    <button class="btn primary" id="btn-upload">＋ Add Images</button>
+    <input type="file" id="upload-input" accept="image/*" multiple />
+    <button class="btn" id="btn-undo" disabled>↩ Undo</button>
+    <button class="btn" id="btn-arrange">Auto Arrange</button>
+    <button class="btn" id="btn-clear-labels">Hide Labels</button>
+    <button class="btn danger" id="btn-clear">Clear All</button>
+    <button class="btn" id="btn-add-note">＋ Note</button>
+    <div class="header-sep"></div>
+    <button class="btn" id="btn-draw-mode">✏ Draw</button>
+    <button class="btn" id="btn-eraser" style="display:none">◌ Erase</button>
+    <button class="btn" id="btn-clear-drawing" style="display:none">✕ Clear Drawing</button>
+    <div class="draw-controls" id="draw-controls">
+      <label>COLOR</label>
+      <input type="color" id="pen-color" value="#ffffff" title="Pen color" />
+      <label>SIZE</label>
+      <input type="range" id="pen-size" min="1" max="30" value="3" title="Pen thickness" />
+    </div>
+    <div class="header-sep"></div>
+    <button class="btn" id="btn-export">↓ Export PNG</button>
+    <div class="header-sep"></div>
+    <button class="btn danger" id="btn-clear-save">✕ Clear Save</button>
+  </div>
+  <div class="tile-size-control">
+    <span>SIZE</span>
+    <input type="range" id="tile-size" min="100" max="600" value="220" step="10" />
+    <span id="tile-size-val">220</span>
+  </div>
+  <span class="save-status" id="save-status">—</span>
+  <div class="counter" id="counter">0 frames</div>
+</header>
+
+<div id="board">
+  <div id="canvas"><svg id="draw-overlay" xmlns="http://www.w3.org/2000/svg"></svg></div>
+  <div id="drop-zone">
+    <div class="dz-frame" id="dz-click">
+      <div class="dz-icon">🎬</div>
+      <div class="dz-label">Drop Images Here</div>
+      <div class="dz-sub">or click to browse · JPG PNG GIF WEBP</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ── DOM refs ──
+  const canvas         = document.getElementById('canvas');
+  const board          = document.getElementById('board');
+  const dropZone       = document.getElementById('drop-zone');
+  const input          = document.getElementById('upload-input');
+  const counter        = document.getElementById('counter');
+  const sizeSlider     = document.getElementById('tile-size');
+  const sizeVal        = document.getElementById('tile-size-val');
+  const btnArrange     = document.getElementById('btn-arrange');
+  const btnClear       = document.getElementById('btn-clear');
+  const btnClearLabels = document.getElementById('btn-clear-labels');
+  const btnExport      = document.getElementById('btn-export');
+  const btnClearSave   = document.getElementById('btn-clear-save');
+  const btnUndo        = document.getElementById('btn-undo');
+  const saveStatus     = document.getElementById('save-status');
+  const dzClick        = document.getElementById('dz-click');
+  const btnUpload      = document.getElementById('btn-upload');
+  const btnAddNote       = document.getElementById('btn-add-note');
+  const btnDrawMode      = document.getElementById('btn-draw-mode');
+  const btnEraser        = document.getElementById('btn-eraser');
+  const btnClearDrawing  = document.getElementById('btn-clear-drawing');
+  const drawControls     = document.getElementById('draw-controls');
+  const penColor         = document.getElementById('pen-color');
+  const penSize          = document.getElementById('pen-size');
+  const drawOverlay      = document.getElementById('draw-overlay');
+
+  // ── Constants ──
+  const DB_NAME    = 'storyboard';
+  const DB_VERSION = 1;
+  const STORE_IMG  = 'images';
+  const LAYOUT_KEY = 'storyboard_layout_v2';
+  const UNDO_LIMIT = 500;
+
+  // ── State ──
+  let db            = null;
+  let tiles         = [];
+  let stickies      = [];
+  let zCounter      = 10;
+  let labelsVisible = true;
+  let defaultSize   = 220;
+  let saveTimer     = null;
+  let undoStack     = [];
+  let strokes       = [];
+  let drawMode      = false;
+  let eraserMode    = false;
+  let currentPath   = null;
+  let currentD      = '';
+
+  // ═══════════════════════════════════════════
+  // IndexedDB helpers
+  // ═══════════════════════════════════════════
+
+  function openDB() {
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open(DB_NAME, DB_VERSION);
+      req.onupgradeneeded = e => { e.target.result.createObjectStore(STORE_IMG); };
+      req.onsuccess = e => resolve(e.target.result);
+      req.onerror   = e => reject(e.target.error);
+    });
+  }
+
+  function idbPut(imgId, blob) {
+    return new Promise((resolve, reject) => {
+      const tx  = db.transaction(STORE_IMG, 'readwrite');
+      const req = tx.objectStore(STORE_IMG).put(blob, imgId);
+      req.onsuccess = () => resolve();
+      req.onerror   = e => reject(e.target.error);
+    });
+  }
+
+  function idbGet(imgId) {
+    return new Promise((resolve, reject) => {
+      const tx  = db.transaction(STORE_IMG, 'readonly');
+      const req = tx.objectStore(STORE_IMG).get(imgId);
+      req.onsuccess = e => resolve(e.target.result);
+      req.onerror   = e => reject(e.target.error);
+    });
+  }
+
+  function idbDelete(imgId) {
+    return new Promise((resolve, reject) => {
+      const tx  = db.transaction(STORE_IMG, 'readwrite');
+      const req = tx.objectStore(STORE_IMG).delete(imgId);
+      req.onsuccess = () => resolve();
+      req.onerror   = e => reject(e.target.error);
+    });
+  }
+
+  function idbClearAll() {
+    return new Promise((resolve, reject) => {
+      const tx  = db.transaction(STORE_IMG, 'readwrite');
+      const req = tx.objectStore(STORE_IMG).clear();
+      req.onsuccess = () => resolve();
+      req.onerror   = e => reject(e.target.error);
+    });
+  }
+
+  function idbGetAllKeys() {
+    return new Promise((resolve, reject) => {
+      const tx  = db.transaction(STORE_IMG, 'readonly');
+      const req = tx.objectStore(STORE_IMG).getAllKeys();
+      req.onsuccess = e => resolve(e.target.result);
+      req.onerror   = e => reject(e.target.error);
+    });
+  }
+
+  function newId() {
+    return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  }
+
+  // ═══════════════════════════════════════════
+  // Upload / file handling
+  // ═══════════════════════════════════════════
+
+  btnUpload.addEventListener('click', () => input.click());
+  dzClick.addEventListener('click',   () => input.click());
+  input.addEventListener('change', e => { addFiles(e.target.files); input.value = ''; });
+
+  window.addEventListener('dragover',  e => { e.preventDefault(); board.classList.add('file-dragover'); });
+  window.addEventListener('dragleave', e => { if (e.relatedTarget === null) board.classList.remove('file-dragover'); });
+  window.addEventListener('drop', e => {
+    e.preventDefault();
+    board.classList.remove('file-dragover');
+    addFiles(e.dataTransfer.files);
+  });
+
+  function addFiles(fileList) {
+    [...fileList].filter(f => f.type.startsWith('image/')).forEach(async file => {
+      pushUndo();
+      const imgId  = newId();
+      await idbPut(imgId, file);
+      const objUrl = URL.createObjectURL(file);
+      spawnTile(imgId, file.name, objUrl);
+      scheduleSave();
+    });
+  }
+
+  // ═══════════════════════════════════════════
+  // Tile creation
+  // ═══════════════════════════════════════════
+
+  function spawnTile(imgId, name, objUrl, x, y, w, h, zIdx) {
+    if (x === undefined) {
+      const size   = defaultSize;
+      const pad    = 60;
+      const boardW = board.clientWidth  || window.innerWidth;
+      const boardH = board.clientHeight || window.innerHeight - 57;
+      x = pad + Math.random() * Math.max(0, boardW - size - pad * 2);
+      y = pad + Math.random() * Math.max(0, boardH - size - pad * 2);
+      w = size; h = size;
+    }
+
+    const idx  = tiles.length + 1;
+    const tile = document.createElement('div');
+    tile.className = 'tile';
+
+    const z = zIdx || ++zCounter;
+    if (z > zCounter) zCounter = z;
+    tile.style.cssText = `left:${x}px;top:${y}px;width:${w}px;height:${h}px;z-index:${z}`;
+
+    tile.dataset.imgId = imgId;
+    tile.dataset.name  = name;
+
+    tile.innerHTML = `
+      <div class="tile-header">
+        <span class="tile-index">#${String(idx).padStart(3,'0')}</span>
+        <div class="tile-actions">
+          <button class="tile-btn" title="Delete" data-action="del">✕</button>
+        </div>
+      </div>
+      <img src="${objUrl}" alt="${name}" draggable="false" />
+      <div class="tile-label">${name}</div>
+      <div class="tile-resize"></div>
+    `;
+
+    if (!labelsVisible) tile.querySelector('.tile-label').style.display = 'none';
+
+    tile.querySelector('.tile-header').addEventListener('mousedown', startDrag.bind(null, tile));
+    tile.addEventListener('mousedown', () => { tile.style.zIndex = ++zCounter; });
+
+    tile.querySelector('[data-action="del"]').addEventListener('click', async e => {
+      e.stopPropagation();
+      pushUndo();
+      URL.revokeObjectURL(tile.querySelector('img').src);
+      await idbDelete(tile.dataset.imgId);
+      tile.remove();
+      tiles = tiles.filter(t => t !== tile);
+      updateCounter();
+      updateDropZone();
+      scheduleSave();
+    });
+
+    tile.querySelector('.tile-resize').addEventListener('mousedown', startResize.bind(null, tile));
+
+    canvas.appendChild(tile);
+    tiles.push(tile);
+    updateCounter();
+    updateDropZone();
+  }
+
+  // ═══════════════════════════════════════════
+  // Drag & resize
+  // ═══════════════════════════════════════════
+
+  function startDrag(tile, e) {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    pushUndo();
+    tile.classList.add('dragging');
+    tile.style.zIndex = ++zCounter;
+    const startX = e.clientX - tile.offsetLeft;
+    const startY = e.clientY - tile.offsetTop;
+
+    function onMove(e) {
+      tile.style.left = (e.clientX - startX) + 'px';
+      tile.style.top  = (e.clientY - startY) + 'px';
+      expandCanvasForEl(tile);
+    }
+    function onUp() {
+      tile.classList.remove('dragging');
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+      scheduleSave();
+    }
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  }
+
+  function startResize(tile, e) {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    e.stopPropagation();
+    pushUndo();
+    const startX = e.clientX, startY = e.clientY;
+    const startW = tile.offsetWidth, startH = tile.offsetHeight;
+
+    function onMove(e) {
+      tile.style.width  = Math.max(80, startW + (e.clientX - startX)) + 'px';
+      tile.style.height = Math.max(80, startH + (e.clientY - startY)) + 'px';
+    }
+    function onUp() {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+      scheduleSave();
+    }
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  }
+
+  function expandCanvasForEl(el) {
+    const right  = el.offsetLeft + el.offsetWidth  + 60;
+    const bottom = el.offsetTop  + el.offsetHeight + 60;
+    if (right  > canvas.offsetWidth)  canvas.style.width  = right  + 'px';
+    if (bottom > canvas.offsetHeight) canvas.style.height = bottom + 'px';
+  }
+
+  // ═══════════════════════════════════════════
+  // Toolbar actions
+  // ═══════════════════════════════════════════
+
+  btnArrange.addEventListener('click', () => {
+    if (!tiles.length) return;
+    pushUndo();
+    const size = defaultSize;
+    const cols = Math.max(1, Math.floor((board.clientWidth - 40) / (size + 16)));
+    tiles.forEach((tile, i) => {
+      tile.style.left   = (20 + (i % cols) * (size + 16)) + 'px';
+      tile.style.top    = (20 + Math.floor(i / cols) * (size + 16)) + 'px';
+      tile.style.width  = size + 'px';
+      tile.style.height = size + 'px';
+    });
+    scheduleSave();
+  });
+
+  btnClear.addEventListener('click', async () => {
+    if (!tiles.length || !confirm('Clear all frames?')) return;
+    pushUndo();
+    tiles.forEach(t => URL.revokeObjectURL(t.querySelector('img').src));
+    const ids = tiles.map(t => t.dataset.imgId);
+    await Promise.all(ids.map(id => idbDelete(id)));
+    tiles.forEach(t => t.remove());
+    tiles = [];
+    stickies.forEach(s => s.remove());
+    stickies = [];
+    strokes = [];
+    drawOverlay.querySelectorAll('path').forEach(p => p.remove());
+    canvas.style.width = canvas.style.height = '';
+    updateCounter();
+    updateDropZone();
+    scheduleSave();
+  });
+
+  btnClearLabels.addEventListener('click', () => {
+    pushUndo();
+    labelsVisible = !labelsVisible;
+    document.querySelectorAll('.tile-label').forEach(l => l.style.display = labelsVisible ? '' : 'none');
+    btnClearLabels.textContent = labelsVisible ? 'Hide Labels' : 'Show Labels';
+    scheduleSave();
+  });
+
+  sizeSlider.addEventListener('input', () => {
+    defaultSize = +sizeSlider.value;
+    sizeVal.textContent = defaultSize;
+  });
+
+  btnClearSave.addEventListener('click', async () => {
+    if (!confirm('Delete the saved session? The board will also be cleared.')) return;
+    tiles.forEach(t => URL.revokeObjectURL(t.querySelector('img').src));
+    tiles.forEach(t => t.remove());
+    tiles = [];
+    stickies.forEach(s => s.remove());
+    stickies = [];
+    strokes = [];
+    drawOverlay.querySelectorAll('path').forEach(p => p.remove());
+    canvas.style.width = canvas.style.height = '';
+    await idbClearAll();
+    try { localStorage.removeItem(LAYOUT_KEY); } catch(e) {}
+    updateCounter();
+    updateDropZone();
+    setStatus('—');
+    undoStack = [];
+    btnUndo.disabled = true;
+    btnUndo.textContent = '↩ Undo';
+  });
+
+  // ═══════════════════════════════════════════
+  // Undo
+  // ═══════════════════════════════════════════
+
+  function pushUndo() {
+    const snapshot = {
+      labelsVisible,
+      tiles: tiles.map(t => ({
+        imgId: t.dataset.imgId,
+        name:  t.dataset.name,
+        x:     t.offsetLeft,
+        y:     t.offsetTop,
+        w:     t.offsetWidth,
+        h:     t.offsetHeight,
+        z:     +t.style.zIndex || 0,
+      })),
+      stickies: stickies.map(s => ({
+        text: getStickyText(s),
+        x:    s.offsetLeft,
+        y:    s.offsetTop,
+        w:    s.offsetWidth,
+        h:    s.offsetHeight,
+        z:    +s.style.zIndex || 0,
+      })),
+      strokes: strokes.map(s => ({ ...s }))
+    };
+    undoStack.push(snapshot);
+    if (undoStack.length > UNDO_LIMIT) undoStack.shift();
+    btnUndo.disabled = false;
+    btnUndo.textContent = `↩ Undo (${undoStack.length})`;
+  }
+
+  async function applySnapshot(snapshot) {
+    tiles.forEach(t => URL.revokeObjectURL(t.querySelector('img').src));
+    tiles.forEach(t => t.remove());
+    tiles = [];
+    stickies.forEach(s => s.remove());
+    stickies = [];
+    zCounter = 10;
+
+    labelsVisible = snapshot.labelsVisible;
+    btnClearLabels.textContent = labelsVisible ? 'Hide Labels' : 'Show Labels';
+
+    for (const t of snapshot.tiles) {
+      const blob = await idbGet(t.imgId);
+      if (!blob) continue;
+      spawnTile(t.imgId, t.name, URL.createObjectURL(blob), t.x, t.y, t.w, t.h, t.z);
+    }
+
+    if (Array.isArray(snapshot.stickies)) {
+      snapshot.stickies.forEach(s => spawnSticky(s.text, s.x, s.y, s.w, s.h, s.z));
+    }
+    if (Array.isArray(snapshot.strokes)) {
+      strokes = snapshot.strokes.map(s => ({ ...s }));
+      renderStrokes(strokes);
+    }
+  }
+
+  btnUndo.addEventListener('click', doUndo);
+
+  async function doUndo() {
+    if (!undoStack.length) return;
+    const snapshot = undoStack.pop();
+    await applySnapshot(snapshot);
+    btnUndo.disabled = undoStack.length === 0;
+    btnUndo.textContent = undoStack.length ? `↩ Undo (${undoStack.length})` : '↩ Undo';
+    scheduleSave();
+  }
+
+  window.addEventListener('keydown', e => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+      e.preventDefault();
+      doUndo();
+    }
+  });
+
+  // ═══════════════════════════════════════════
+  // Save / Restore
+  // ═══════════════════════════════════════════
+
+  function scheduleSave() {
+    setStatus('saving…', 'saving');
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(saveSession, 800);
+  }
+
+  function saveSession() {
+    gcOrphanedImages();
+    const layout = {
+      labelsVisible,
+      defaultSize,
+      tiles: tiles.map(t => ({
+        imgId: t.dataset.imgId,
+        name:  t.dataset.name,
+        x:     t.offsetLeft,
+        y:     t.offsetTop,
+        w:     t.offsetWidth,
+        h:     t.offsetHeight,
+        z:     +t.style.zIndex || 0,
+      })),
+      stickies: stickies.map(s => ({
+        text: getStickyText(s),
+        x:    s.offsetLeft,
+        y:    s.offsetTop,
+        w:    s.offsetWidth,
+        h:    s.offsetHeight,
+        z:    +s.style.zIndex || 0,
+      })),
+      strokes: strokes.map(s => ({ ...s }))
+    };
+    try {
+      localStorage.setItem(LAYOUT_KEY, JSON.stringify(layout));
+      setStatus('saved', 'saved');
+    } catch(e) {
+      setStatus('⚠ layout save failed', 'error');
+    }
+  }
+
+  async function gcOrphanedImages() {
+    const live = new Set(tiles.map(t => t.dataset.imgId));
+    undoStack.forEach(snap => snap.tiles.forEach(t => live.add(t.imgId)));
+    const all = await idbGetAllKeys();
+    for (const key of all) {
+      if (!live.has(key)) await idbDelete(key);
+    }
+  }
+
+  async function restoreSession() {
+    let raw;
+    try { raw = localStorage.getItem(LAYOUT_KEY); } catch(e) { return; }
+    if (!raw) return;
+
+    let layout;
+    try { layout = JSON.parse(raw); } catch(e) { return; }
+
+    if (typeof layout.labelsVisible === 'boolean') {
+      labelsVisible = layout.labelsVisible;
+      btnClearLabels.textContent = labelsVisible ? 'Hide Labels' : 'Show Labels';
+    }
+    if (layout.defaultSize) {
+      defaultSize = layout.defaultSize;
+      sizeSlider.value = defaultSize;
+      sizeVal.textContent = defaultSize;
+    }
+
+    if (Array.isArray(layout.tiles)) {
+      for (const t of layout.tiles) {
+        const blob = await idbGet(t.imgId);
+        if (!blob) continue;
+        spawnTile(t.imgId, t.name, URL.createObjectURL(blob), t.x, t.y, t.w, t.h, t.z);
+      }
+    }
+
+    if (Array.isArray(layout.stickies)) {
+      layout.stickies.forEach(s => spawnSticky(s.text, s.x, s.y, s.w, s.h, s.z));
+    }
+    if (Array.isArray(layout.strokes)) {
+      strokes = layout.strokes.map(s => ({ ...s }));
+      renderStrokes(strokes);
+    }
+
+    setStatus('restored', 'saved');
+    undoStack = [];
+    btnUndo.disabled = true;
+    btnUndo.textContent = '↩ Undo';
+  }
+
+  function setStatus(msg, type) {
+    saveStatus.textContent = msg;
+    saveStatus.className = 'save-status' + (type ? ' ' + type : '');
+  }
+
+  // ═══════════════════════════════════════════
+  // Export PNG
+  // ═══════════════════════════════════════════
+
+  btnExport.addEventListener('click', async () => {
+    if (!tiles.length && !stickies.length && !strokes.length) { alert('Nothing to export.'); return; }
+
+    btnExport.textContent = '…Rendering';
+    btnExport.disabled = true;
+
+    const C = {
+      bg:      '#0e0e0e',
+      surface: '#161616',
+      border:  '#2a2a2a',
+      accent:  '#e8c840',
+      muted:   '#555555',
+      imgBg:   '#111111',
+    };
+    const PAD = 40;
+
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    [...tiles, ...stickies].forEach(t => {
+      const x = t.offsetLeft, y = t.offsetTop, w = t.offsetWidth, h = t.offsetHeight;
+      if (x     < minX) minX = x;
+      if (y     < minY) minY = y;
+      if (x + w > maxX) maxX = x + w;
+      if (y + h > maxY) maxY = y + h;
+    });
+    // also account for stroke extents
+    strokes.forEach(stroke => {
+      stroke.d.match(/[\d.]+\s+[\d.]+/g)?.forEach(pair => {
+        const [sx, sy] = pair.split(/\s+/).map(Number);
+        if (sx < minX) minX = sx; if (sy < minY) minY = sy;
+        if (sx > maxX) maxX = sx; if (sy > maxY) maxY = sy;
+      });
+    });
+    if (minX === Infinity) { minX = 0; minY = 0; maxX = 800; maxY = 600; }
+
+    const W = (maxX - minX) + PAD * 2;
+    const H = (maxY - minY) + PAD * 2;
+
+    const offscreen = document.createElement('canvas');
+    offscreen.width  = W;
+    offscreen.height = H;
+    const ctx = offscreen.getContext('2d');
+
+    ctx.fillStyle = C.bg;
+    ctx.fillRect(0, 0, W, H);
+
+    const sorted = [...tiles].sort((a, b) => (+a.style.zIndex || 0) - (+b.style.zIndex || 0));
+
+    await Promise.all(sorted.map(tile => new Promise(resolve => {
+      const imgEl   = tile.querySelector('img');
+      const labelEl = tile.querySelector('.tile-label');
+      const indexEl = tile.querySelector('.tile-index');
+
+      const tx = tile.offsetLeft - minX + PAD;
+      const ty = tile.offsetTop  - minY + PAD;
+      const tw = tile.offsetWidth;
+      const th = tile.offsetHeight;
+
+      const HEADER_H = 28;
+      const LABEL_H  = labelsVisible ? 18 : 0;
+      const IMG_H    = th - HEADER_H - LABEL_H;
+
+      ctx.save();
+      ctx.shadowColor   = 'rgba(0,0,0,0.7)';
+      ctx.shadowBlur    = 18;
+      ctx.shadowOffsetY = 6;
+      ctx.fillStyle = C.surface;
+      ctx.fillRect(tx, ty, tw, th);
+      ctx.restore();
+
+      ctx.strokeStyle = C.border;
+      ctx.lineWidth = 1;
+      ctx.strokeRect(tx + 0.5, ty + 0.5, tw - 1, th - 1);
+
+      ctx.fillStyle = C.surface;
+      ctx.fillRect(tx, ty, tw, HEADER_H);
+      ctx.strokeStyle = C.border;
+      ctx.beginPath();
+      ctx.moveTo(tx, ty + HEADER_H);
+      ctx.lineTo(tx + tw, ty + HEADER_H);
+      ctx.stroke();
+
+      ctx.fillStyle = C.accent;
+      ctx.font = '500 10px "IBM Plex Mono", monospace';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(indexEl ? indexEl.textContent : '', tx + 8, ty + HEADER_H / 2);
+
+      ctx.fillStyle = C.imgBg;
+      ctx.fillRect(tx, ty + HEADER_H, tw, IMG_H);
+
+      const img = new Image();
+      img.onload = () => {
+        const ar    = img.naturalWidth / img.naturalHeight;
+        const boxAr = tw / IMG_H;
+        let dw, dh;
+        if (ar > boxAr) { dw = tw;    dh = tw / ar;    }
+        else             { dh = IMG_H; dw = IMG_H * ar; }
+        const dx = tx + (tw - dw) / 2;
+        const dy = ty + HEADER_H + (IMG_H - dh) / 2;
+        ctx.drawImage(img, dx, dy, dw, dh);
+
+        if (labelsVisible && labelEl) {
+          ctx.fillStyle = C.surface;
+          ctx.fillRect(tx, ty + HEADER_H + IMG_H, tw, LABEL_H);
+          ctx.strokeStyle = C.border;
+          ctx.beginPath();
+          ctx.moveTo(tx, ty + HEADER_H + IMG_H);
+          ctx.lineTo(tx + tw, ty + HEADER_H + IMG_H);
+          ctx.stroke();
+          ctx.fillStyle = C.muted;
+          ctx.font = '10px "IBM Plex Mono", monospace';
+          ctx.textBaseline = 'middle';
+          ctx.save();
+          ctx.rect(tx + 6, ty + HEADER_H + IMG_H, tw - 12, LABEL_H);
+          ctx.clip();
+          ctx.fillText(labelEl.textContent, tx + 8, ty + HEADER_H + IMG_H + LABEL_H / 2);
+          ctx.restore();
+        }
+        resolve();
+      };
+      img.onerror = resolve;
+      img.src = imgEl.src;
+    })));
+
+    // Draw sticky notes
+    const SC = { bg: '#2a2710', border: '#5a5020', header: '#1e1c08', text: '#d4c87a', tag: '#e8c840' };
+    stickies.forEach(sticky => {
+      const sx = sticky.offsetLeft - minX + PAD;
+      const sy = sticky.offsetTop  - minY + PAD;
+      const sw = sticky.offsetWidth;
+      const sh = sticky.offsetHeight;
+      const SH = 22;
+
+      ctx.save();
+      ctx.shadowColor = 'rgba(0,0,0,0.5)';
+      ctx.shadowBlur  = 12;
+      ctx.shadowOffsetY = 4;
+      ctx.fillStyle = SC.bg;
+      ctx.fillRect(sx, sy, sw, sh);
+      ctx.restore();
+
+      ctx.strokeStyle = SC.border;
+      ctx.lineWidth = 1;
+      ctx.strokeRect(sx + 0.5, sy + 0.5, sw - 1, sh - 1);
+      ctx.fillStyle = SC.header;
+      ctx.fillRect(sx, sy, sw, SH);
+      ctx.strokeStyle = SC.border;
+      ctx.beginPath();
+      ctx.moveTo(sx, sy + SH);
+      ctx.lineTo(sx + sw, sy + SH);
+      ctx.stroke();
+      ctx.fillStyle = SC.tag;
+      ctx.font = '500 9px "IBM Plex Mono", monospace';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('NOTE', sx + 7, sy + SH / 2);
+
+      const bodyText = getStickyText(sticky);
+      if (bodyText) {
+        ctx.fillStyle = SC.text;
+        ctx.font = '11px "IBM Plex Mono", monospace';
+        ctx.textBaseline = 'top';
+        const maxW  = sw - 20;
+        const lineH = 16;
+        const paras = bodyText.split('\n');
+        let lineY = sy + SH + 8;
+        for (const para of paras) {
+          const words = para.split(' ');
+          let line = '';
+          for (const word of words) {
+            const test = line ? line + ' ' + word : word;
+            if (ctx.measureText(test).width > maxW && line) {
+              ctx.fillText(line, sx + 10, lineY);
+              line = word; lineY += lineH;
+              if (lineY > sy + sh - 8) break;
+            } else { line = test; }
+          }
+          if (line && lineY <= sy + sh - 8) { ctx.fillText(line, sx + 10, lineY); lineY += lineH; }
+          if (lineY > sy + sh - 8) break;
+        }
+      }
+    });
+
+    // Draw freehand strokes
+    drawStrokesOnCanvas(ctx, minX, minY, PAD);
+
+    offscreen.toBlob(blob => {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'storyboard-' + new Date().toISOString().slice(0, 10) + '.png';
+      a.click();
+      URL.revokeObjectURL(a.href);
+      btnExport.textContent = '↓ Export PNG';
+      btnExport.disabled = false;
+    }, 'image/png');
+  });
+
+  // ═══════════════════════════════════════════
+  // Sticky Notes
+  // ═══════════════════════════════════════════
+
+  btnAddNote.addEventListener('click', () => {
+    pushUndo();
+    const pad    = 60;
+    const boardW = board.clientWidth  || window.innerWidth;
+    const boardH = board.clientHeight || window.innerHeight - 57;
+    const x = pad + Math.random() * Math.max(0, boardW - 220 - pad * 2);
+    const y = pad + Math.random() * Math.max(0, boardH - 160 - pad * 2);
+    spawnSticky('', x, y, 200, 120);
+    scheduleSave();
+  });
+
+  function spawnSticky(text, x, y, w, h, zIdx) {
+    const sticky = document.createElement('div');
+    sticky.className = 'sticky';
+    const z = zIdx || ++zCounter;
+    if (z > zCounter) zCounter = z;
+    sticky.style.cssText = `left:${x}px;top:${y}px;width:${w}px;height:${h}px;z-index:${z}`;
+
+    sticky.innerHTML = `
+      <div class="sticky-header">
+        <span class="sticky-tag">NOTE</span>
+        <button class="sticky-del" title="Delete">✕</button>
+      </div>
+      <div class="sticky-body" tabindex="0">${escHtml(text)}</div>
+      <div class="sticky-resize"></div>
+    `;
+
+    const header = sticky.querySelector('.sticky-header');
+    const body   = sticky.querySelector('.sticky-body');
+
+    header.addEventListener('mousedown', e => {
+      if (e.button !== 0) return;
+      e.preventDefault();
+      pushUndo();
+      sticky.style.zIndex = ++zCounter;
+      sticky.classList.add('dragging');
+      const startX = e.clientX - sticky.offsetLeft;
+      const startY = e.clientY - sticky.offsetTop;
+      function onMove(e) {
+        sticky.style.left = (e.clientX - startX) + 'px';
+        sticky.style.top  = (e.clientY - startY) + 'px';
+        expandCanvasForEl(sticky);
+      }
+      function onUp() {
+        sticky.classList.remove('dragging');
+        window.removeEventListener('mousemove', onMove);
+        window.removeEventListener('mouseup', onUp);
+        scheduleSave();
+      }
+      window.addEventListener('mousemove', onMove);
+      window.addEventListener('mouseup', onUp);
+    });
+
+    sticky.addEventListener('mousedown', () => { sticky.style.zIndex = ++zCounter; });
+
+    body.addEventListener('dblclick', () => {
+      body.contentEditable = 'true';
+      body.classList.add('editing');
+      body.focus();
+      const range = document.createRange();
+      range.selectNodeContents(body);
+      range.collapse(false);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+    });
+
+    body.addEventListener('blur', () => {
+      body.contentEditable = 'false';
+      body.classList.remove('editing');
+      scheduleSave();
+    });
+
+    body.addEventListener('keydown', e => {
+      if (e.key === 'Escape') body.blur();
+    });
+
+    sticky.querySelector('.sticky-del').addEventListener('click', e => {
+      e.stopPropagation();
+      pushUndo();
+      sticky.remove();
+      stickies = stickies.filter(s => s !== sticky);
+      scheduleSave();
+    });
+
+    sticky.querySelector('.sticky-resize').addEventListener('mousedown', e => {
+      if (e.button !== 0) return;
+      e.preventDefault();
+      e.stopPropagation();
+      pushUndo();
+      const startX = e.clientX, startY = e.clientY;
+      const startW = sticky.offsetWidth, startH = sticky.offsetHeight;
+      function onMove(e) {
+        sticky.style.width  = Math.max(120, startW + (e.clientX - startX)) + 'px';
+        sticky.style.height = Math.max(80,  startH + (e.clientY - startY)) + 'px';
+      }
+      function onUp() {
+        window.removeEventListener('mousemove', onMove);
+        window.removeEventListener('mouseup', onUp);
+        scheduleSave();
+      }
+      window.addEventListener('mousemove', onMove);
+      window.addEventListener('mouseup', onUp);
+    });
+
+    canvas.appendChild(sticky);
+    stickies.push(sticky);
+  }
+
+  function getStickyText(sticky) {
+    return sticky.querySelector('.sticky-body').innerText || '';
+  }
+
+  function escHtml(str) {
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  // ═══════════════════════════════════════════
+  // Drawing
+  // ═══════════════════════════════════════════
+
+  btnDrawMode.addEventListener('click', () => {
+    eraserMode = false;
+    drawMode = !drawMode;
+    applyDrawMode();
+  });
+
+  btnEraser.addEventListener('click', () => {
+    eraserMode = !eraserMode;
+    btnEraser.classList.toggle('eraser-active', eraserMode);
+    drawOverlay.querySelectorAll('path').forEach(p => {
+      p.classList.toggle('eraser-hover', eraserMode);
+    });
+  });
+
+  btnClearDrawing.addEventListener('click', () => {
+    if (!strokes.length) return;
+    if (!confirm('Clear all drawings?')) return;
+    pushUndo();
+    strokes = [];
+    drawOverlay.querySelectorAll('path').forEach(p => p.remove());
+    scheduleSave();
+  });
+
+  function applyDrawMode() {
+    btnDrawMode.classList.toggle('draw-active', drawMode);
+    btnDrawMode.textContent = drawMode ? '✏ Draw ON' : '✏ Draw';
+    drawOverlay.classList.toggle('active', drawMode && !eraserMode);
+    canvas.classList.toggle('draw-mode', drawMode);
+    btnEraser.style.display       = drawMode ? '' : 'none';
+    btnClearDrawing.style.display = drawMode ? '' : 'none';
+    drawControls.classList.toggle('visible', drawMode);
+    if (!drawMode) {
+      eraserMode = false;
+      btnEraser.classList.remove('eraser-active');
+      drawOverlay.querySelectorAll('path').forEach(p => p.classList.remove('eraser-hover'));
+    }
+  }
+
+  drawOverlay.addEventListener('mousedown', e => {
+    if (!drawMode || eraserMode || e.button !== 0) return;
+    e.preventDefault();
+
+    const rect = drawOverlay.getBoundingClientRect();
+    const x0 = e.clientX - rect.left;
+    const y0 = e.clientY - rect.top;
+
+    currentD = `M ${x0} ${y0}`;
+    currentPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    currentPath.setAttribute('d', currentD);
+    currentPath.setAttribute('stroke', penColor.value);
+    currentPath.setAttribute('stroke-width', penSize.value);
+    currentPath.style.fill = 'none';
+    currentPath.style.strokeLinecap = 'round';
+    currentPath.style.strokeLinejoin = 'round';
+    drawOverlay.appendChild(currentPath);
+
+    function onMove(e) {
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      currentD += ` L ${x} ${y}`;
+      currentPath.setAttribute('d', currentD);
+      expandCanvasForEl({ offsetLeft: x - 10, offsetTop: y - 10, offsetWidth: 20, offsetHeight: 20 });
+    }
+
+    function onUp() {
+      if (currentPath) {
+        pushUndo();
+        const stroke = { d: currentD, color: penColor.value, width: +penSize.value };
+        strokes.push(stroke);
+        attachEraserClick(currentPath, stroke);
+        currentPath = null;
+        currentD = '';
+        scheduleSave();
+      }
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    }
+
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  });
+
+  function attachEraserClick(pathEl, stroke) {
+    pathEl.addEventListener('click', e => {
+      if (!eraserMode) return;
+      e.stopPropagation();
+      pushUndo();
+      pathEl.remove();
+      strokes = strokes.filter(s => s !== stroke);
+      scheduleSave();
+    });
+  }
+
+  function renderStrokes(strokeList) {
+    drawOverlay.querySelectorAll('path').forEach(p => p.remove());
+    strokeList.forEach(stroke => {
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('d', stroke.d);
+      path.setAttribute('stroke', stroke.color);
+      path.setAttribute('stroke-width', stroke.width);
+      path.style.fill = 'none';
+      path.style.strokeLinecap = 'round';
+      path.style.strokeLinejoin = 'round';
+      if (eraserMode) path.classList.add('eraser-hover');
+      drawOverlay.appendChild(path);
+      attachEraserClick(path, stroke);
+    });
+  }
+
+  function drawStrokesOnCanvas(ctx, minX, minY, PAD) {
+    strokes.forEach(stroke => {
+      if (!stroke.d) return;
+      const commands = stroke.d.trim().split(/(?=[ML])/);
+      ctx.beginPath();
+      ctx.strokeStyle = stroke.color;
+      ctx.lineWidth   = stroke.width;
+      ctx.lineCap     = 'round';
+      ctx.lineJoin    = 'round';
+      commands.forEach(cmd => {
+        const parts = cmd.trim().split(/\s+/);
+        const type  = parts[0];
+        const x     = parseFloat(parts[1]) - minX + PAD;
+        const y     = parseFloat(parts[2]) - minY + PAD;
+        if (type === 'M') ctx.moveTo(x, y);
+        else if (type === 'L') ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+    });
+  }
+
+  // ═══════════════════════════════════════════
+  // Utilities
+  // ═══════════════════════════════════════════
+
+  function updateCounter() {
+    counter.textContent = tiles.length + (tiles.length === 1 ? ' frame' : ' frames');
+  }
+
+  function updateDropZone() {
+    dropZone.classList.toggle('hidden', tiles.length > 0);
+  }
+
+  // ═══════════════════════════════════════════
+  // Boot
+  // ═══════════════════════════════════════════
+
+  openDB()
+    .then(database => {
+      db = database;
+      setStatus('loading…', 'saving');
+      return restoreSession();
+    })
+    .catch(err => {
+      console.error('IndexedDB error:', err);
+      setStatus('⚠ storage unavailable', 'error');
+    });
+</script>
+</body>
+</html>
